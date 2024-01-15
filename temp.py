@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     def walk_controller(times,direction):
         # t: thigh, c: calf, s: sleep (sleep time is in [sec])
-        # direction-> 0:front 1:left 2:right
+        # direction-> 0:front 1:left 2:right 3:backwards
         pattern = [
             ('t',0),
             ('s',1.5),
@@ -117,11 +117,15 @@ if __name__ == '__main__':
                 elif direction == 2:
                     motion_parser(pattern[j],2)
                     motion_parser(pattern[-j-1],1)
+                elif direction == 3:
+                    motion_parser(pattern[-j-1],1)
+                    motion_parser(pattern[-(j+phase_diff)%len(pattern)-1],2)
                 else:
                     print("illegal direction")
                     return
-    times,direction = map(int,input("input walk count and direction \n").split())
-    walk_controller(times,direction)
+    while True:
+        times,direction = map(int,input("input walk count and direction \n").split())
+        walk_controller(times,direction)
                     
                 
         
