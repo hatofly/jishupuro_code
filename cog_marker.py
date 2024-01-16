@@ -44,7 +44,7 @@ pub2 = rospy.Publisher("robot_operation",Int32MultiArray,queue_size=10)
 #https://qiita.com/keoitate/items/efe4212b0074e10378ec
 
 rospy.init_node('graph_talker',anonymous=True)
-r = rospy.rate(1)
+r = rospy.rate(1.0)
 
 # 0番マーカーをロボットと、1番マーカーをゴールとする。
 def callback(msg):
@@ -103,20 +103,24 @@ def callback(msg):
     # 角度合わせ指令
     if theta < -delta_theta:
       # 右によりすぎ。左に曲がってから前に2歩進む。
-      pub_array = ((1,int(rotation_magnifier*abs(theta))),(0,2))
+      pub_array = ((int(rotation_magnifier*abs(theta)),2),(2,0))
     elif theta > delta_theta:
       # 左によりすぎ。右に曲がってから前に2歩進む。
-      pub_array = ((2,int(rotation_magnifier*abs(theta))),(0,2))
+      pub_array = ((int(rotation_magnifier*abs(theta)),1),(2,0))
     else:
       #許容誤差範囲内。前に2歩進む。
-      pub_array = ((0,2))
-    pub2.publish(numpy2i32multi(pub_array))
+      pub_array = ((2,0))
+    pub2.publish(numpy2i32multi(np.array(pub_array)))
   else:
+    # marker0か1が検知されなかった場合。
     pass
 
 def listener():
   rospy.Subscriber('/camera/color/image_raw',Image,callback)
   rospy.spin()
+
+if __name__ == '__main__':
+  listener()
 
 # メモ欄
   # pts2の長さが一定なので、realsenseの距離・角度を動かしても投影したときの距離は一定
