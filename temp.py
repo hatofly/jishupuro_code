@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #path: /home/mech-user/enshu_ws/src/robot-programming/dynamixel_7dof_arm/scripts
+# source ~/enshu_ws/devel/setup.bash してから実行する
 import sys
 from optparse import OptionParser
 import time
