@@ -14,11 +14,13 @@ def signed_dist_line_pt(lp0,lp1,p):
   #lp0とlp1で結ばれた直線と点pの距離を求める
   (x1,y1)=lp0
   (x2,y2)=lp1
-  # y>0となる方向を正の方向とした上で、それに対しての左右を判定する。y1-y2が負であれば、xが非常に大きいときに負、xが非常に小さいときに正となることで判別できる。
-  if (y1-y2)>0:
-    ((x1,y1),(x2,y2))=((x2,y2),(x1,y1))
+  # front,rearの順番で与えてるならば、(lp0-lp1)と(p-lp1)の外積で左右を判別
+  if np.cross((lp1-lp0),(p-lp0))>0:
+    sgn=-1
+  else:
+    sgn=1
   # 直線の方程式は(y1-y2)*x+(x2-x1)*y+(x1*y2-x2*y1)=0
-  return ((y1-y2)*p[0]+(x2-x1)*p[1]+(x1*y2-x2*y1))/math.sqrt((y1-y2)**2+(x2-x1)**2)
+  return sgn*abs((y1-y2)*p[0]+(x2-x1)*p[1]+(x1*y2-x2*y1))/math.sqrt((y1-y2)**2+(x2-x1)**2)
 
 class localizer:
   def __init__(self) -> None:
@@ -91,7 +93,7 @@ class localizer:
       # 投影変換したらもう一回detect
       corners2, ids2, rejectedImgPoints2 = aruco.detectMarkers(img_rec, self.p_dict) # 検出
       if str(type(ids2))!="<class 'NoneType'>" and len(ids2)==2:
-        rospy.loginfo("markers found")
+        rospy.loginfo("markers found in warped img")
         img_marked = aruco.drawDetectedMarkers(img_rec.copy(), corners2, ids2)   # 検出結果をオーバーレイ
 
         # 0番マーカーの4点を取得して、重心を通る直線をひく
@@ -126,11 +128,11 @@ class localizer:
         
         # 角度合わせ指令
         if theta < -self.delta_theta:
-          # 右によりすぎ。左に曲がってから前に2歩進む。
-          pub_array = ((int(self.rotation_magnifier*abs(theta)),1),(2,0))
+          # 右によりすぎ。左に曲がってから前に1歩進む。
+          pub_array = ((1,1),(1,0))
         elif theta > self.delta_theta:
-          # 左によりすぎ。右に曲がってから前に2歩進む。
-          pub_array = ((int(self.rotation_magnifier*abs(theta)),2),(2,0))
+          # 左によりすぎ。右に曲がってから前に1歩進む。
+          pub_array = ((1,2),(1,0))
         else:
           #許容誤差範囲内。前に2歩進む。
           pub_array = ((1,0),(1,0))

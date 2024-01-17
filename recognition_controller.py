@@ -12,6 +12,7 @@ from manual_controller import motion_parser,walk_controller
 class walker():
   def __init__(self):
     self.temp_container = None
+    self.motion_list=["straight","left","right"]
     rospy.init_node('recognition_controller',anonymous=True)
     rospy.Timer(rospy.Duration(20),self.timer_callback)
     rospy.Subscriber('robot_operation',Int32MultiArray,self.callback)
@@ -26,6 +27,7 @@ class walker():
     operation = self.temp_container
     if str(type(operation))!="<class 'NoneType'>":
       for op in operation:
+        rospy.loginfo("heading {}".format(self.motion_list[op[1]]))
         walk_controller(op[0],op[1])
 
 if __name__ == '__main__':
