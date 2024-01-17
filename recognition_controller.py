@@ -18,9 +18,10 @@ def callback(msg):
 
 
 def listener():
-  rospy.Subscriber('robot_operation',Int32MultiArray,callback)
-  # spinだとrateが速すぎるのでr.sleep()を使う。
-  r.sleep()
+  while not rospy.is_shutdown():
+    rospy.Subscriber('robot_operation',Int32MultiArray,callback)
+    # spinだとrateが速すぎるのでr.sleep()を使う。
+    r.sleep()
 
 if __name__ == '__main__':
   listener()

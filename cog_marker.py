@@ -20,109 +20,132 @@ def signed_dist_line_pt(lp0,lp1,p):
   # 直線の方程式は(y1-y2)*x+(x2-x1)*y+(x1*y2-x2*y1)=0
   return ((y1-y2)*p[0]+(x2-x1)*p[1]+(x1*y2-x2*y1))/math.sqrt((y1-y2)**2+(x2-x1)**2)
 
-# 変数(変更しないつもりのもの)定義
-alpha = 87*math.pi/180
-beta = 58*math.pi/180
-offset_x = 400
-offset_y = 400
-rotation_magnifier = 3 #1radの回転を何歩に変換するのか
-delta_theta = math.pi/8 #進行方向とゴール方向のズレの許容値。
-p_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-## pts2：marker_0の投影先
-pts2 = np.array([[0.0,0.0],[100.0,0.0],[100.0,100.0],[0.0,100.0]]).astype(np.float32)
-pts2[:,0]+=offset_x
-pts2[:,1]+=offset_y
+class localizer:
+  def __init__(self) -> None:
+    # 変数(変更しないつもりのもの)定義
+    self.alpha = 87*math.pi/180
+    self.beta = 58*math.pi/180
+    self.offset_x = 5000
+    self.offset_y = 5000
+    self.rotation_magnifier = 3 #1radの回転を何歩に変換するのか
+    self.delta_theta = math.pi/8 #進行方向とゴール方向のズレの許容値。
+    self.p_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    ## pts2：marker_0の投影先
+    self.pts2 = np.array([[0.0,0.0],[200.0,0.0],[200.0,200.0],[0.0,200.0]]).astype(np.float32)
+    self.pts2[:,0]+=self.offset_x
+    self.pts2[:,1]+=self.offset_y
 
-# 変数(変更を加えるつもりのもの)定義
+    # 変数(変更を加えるつもりのもの)定義
+    self.temp_container = None
+    # pubを定義
+    self.pub1 = rospy.Publisher("projected_map",Image,queue_size=10)
+    self.pub2 = rospy.Publisher("robot_operation",Int32MultiArray,queue_size=10)
+    # robot_operationは移動方向と歩数をまとめたシンプルな配列。座標に基づくoperationは本ノード内で行う。
+    #depthの取得はここでできそう
+    #https://qiita.com/keoitate/items/efe4212b0074e10378ec
+
+    # nodeを開始
+    rospy.init_node('localizer',anonymous=True)
+    rospy.Timer(rospy.Duration(1),self.timer_callback)
+
+    rospy.Subscriber('/camera/color/image_raw',Image,self.callback)
+    rospy.spin() 
 
 
-# ノードを開始
-pub1 = rospy.Publisher("projected_map",Image,queue_size=10)
-pub2 = rospy.Publisher("robot_operation",Int32MultiArray,queue_size=10)
-# robot_operationは移動方向と歩数をまとめたシンプルな配列。座標に基づくoperationは本ノード内で行う。
-#depthの取得はここでできそう
-#https://qiita.com/keoitate/items/efe4212b0074e10378ec
+  # 0番マーカーをロボットと、1番マーカーをゴールとする。
 
-rospy.init_node('graph_talker',anonymous=True)
-r = rospy.rate(1.0)
+  def callback(self,msg):
+    rospy.loginfo("callback")
+    try:
+      bridge = CvBridge()
+      img = bridge.imgmsg_to_cv2(msg)
+      self.temp_container = img
+    except Exception:
+      rospy.logerr("error in image conversion")
+  
+  def timer_callback(self,msg):
+    img = self.temp_container
+    if str(type(img))=="<class 'NoneType'>":
+      rospy.loginfo("img is None")
+      return
+    rospy.loginfo("compressing img")
+    #画像の圧縮
+    img=cv2.resize(img,(int(img.shape[1]/5.0),int(img.shape[0]/5.0)))
+    # マーカーを検知
+    corners, ids, rejectedImgPoints = aruco.detectMarkers(img, self.p_dict) 
+    ## cornersは 検出マーカー数×4×2という形
+    ## 左上から時計回りに格納
+    ##　idsは 検出マーカー数*1 二重になってるんで注意
+    ## np.where(ids==np.array([0]))
+    if str(type(ids))!="<class 'NoneType'>" and len(ids)==2:
+      rospy.loginfo("markers found in raw img")
+      # marker_1をpts2に投影するような投影行列を作り、投影を行う。
+      M = cv2.getPerspectiveTransform(corners[np.where(ids==1)[0][0]],self.pts2)
+      img_rec = cv2.warpPerspective(img,M,(10000,10000))
+      ## transposeは左右反転で読めなくなるので注意
 
-# 0番マーカーをロボットと、1番マーカーをゴールとする。
-def callback(msg):
-  try:
-    bridge = CvBridge()
-    img = bridge.imgmsg_to_cv2(msg)
-  except Exception:
-    rospy.logerr("error in image conversion")
-  # 画像を圧縮
-  img=cv2.resize(img,(int(img.shape[1]/5.0),int(img.shape[0]/5.0)))
-  # マーカーを検知
-  corners, ids, rejectedImgPoints = aruco.detectMarkers(img, p_dict) 
-  ## cornersは 検出マーカー数×4×2という形
-  ## 左上から時計回りに格納
-  ##　idsは 検出マーカー数*1 二重になってるんで注意
-  ## np.where(ids==np.array([0]))
-  if (0 in ids) and (1 in ids):
-    # marker_1をpts2に投影するような投影行列を作り、投影を行う。
-    M = cv2.getPerspectiveTransform(corners[np.where(ids==[1])[0][0]],pts2)
-    img_rec = cv2.warpPerspective(img,M,(1500,1500))
-    ## transposeは左右反転で読めなくなるので注意
+      ## 回転機能は一旦要らないかな
+      ### rotate_matrix = cv2.getRotationMatrix2D(center=(img_rec.shape[0]/2,img_rec.shape[1]/2), angle=40, scale=1)
+      ### img_rec = cv2.warpAffine(src=img_rec, M=rotate_matrix, dsize=(img_rec.shape[0],img_rec.shape[1]))
 
-    ## 回転機能は一旦要らないかな
-    ### rotate_matrix = cv2.getRotationMatrix2D(center=(img_rec.shape[0]/2,img_rec.shape[1]/2), angle=40, scale=1)
-    ### img_rec = cv2.warpAffine(src=img_rec, M=rotate_matrix, dsize=(img_rec.shape[0],img_rec.shape[1]))
+      # 投影変換したらもう一回detect
+      corners2, ids2, rejectedImgPoints2 = aruco.detectMarkers(img_rec, self.p_dict) # 検出
+      if str(type(ids2))!="<class 'NoneType'>" and len(ids2)==2:
+        rospy.loginfo("markers found")
+        img_marked = aruco.drawDetectedMarkers(img_rec.copy(), corners2, ids2)   # 検出結果をオーバーレイ
 
-    # 投影変換したらもう一回detect
-    corners2, ids2, rejectedImgPoints2 = aruco.detectMarkers(img_rec, p_dict) # 検出
-    img_marked = aruco.drawDetectedMarkers(img_rec.copy(), corners2, ids2)   # 検出結果をオーバーレイ
+        # 0番マーカーの4点を取得して、重心を通る直線をひく
+        #rospy.loginfo("np.where(ids2==0)={}\n".format(np.where(ids2==0)))
+        # ↑これがあると何故かフリーズする
+        marker_0 = corners2[np.where(ids2==0)[0][0]][0]
+        marker_0 = corners2[0][0]
+        front = (marker_0[0]+marker_0[1])/2.0
+        rear = (marker_0[2]+marker_0[3])/2.0
+        img_marked = cv2.line(img_marked,((front-rear)*5+rear).astype(int),((rear-front)*5+front).astype(int),(255,0,255),thickness=3)
+        #0番マーカーの4点から重心を取得
+        marker_0_g = np.average(marker_0,axis=0)
+        img_marked = cv2.resize(img_marked,(img_marked.shape[0]//10,img_marked.shape[1]//10))
+        # この時点でprojected_mapはpublishできる。
+        rospy.loginfo("publishing image")
+        self.pub1.publish(data=list(np.reshape(img_marked,-1)),height = img_marked.shape[0],width=img_marked.shape[1],encoding = "rgb8",is_bigendian=0,step=int(img_marked.shape[1])*3)
+        rospy.loginfo("published imaage")
 
-    # 0番マーカーの4点を取得して、重心を通る直線をひく
-    marker_0 = corners2[np.where(ids==[0])[0][0]][0]
-    front = (marker_0[0]+marker_0[1])/2.0
-    rear = (marker_0[2]+marker_0[3])/2.0
-    img_marked = cv2.line(img_marked,((front-rear)*5+rear).astype(int),((rear-front)*5+front).astype(int),(255,0,255),thickness=3)
-    #0番マーカーの4点から重心を取得
-    marker_0_g = np.average(marker_0,axis=0)
+        # 1番マーカーの4点から重心を取得
+        marker_1 = corners2[np.where(ids2==1)[0][0]][0]
+        marker_1_g=np.average(marker_1,axis=0)
 
-    # この時点でprojected_mapはpublishできる。
-    pub1.publish(data=list(np.reshape(img_marked,-1)),height = img_marked.shape[0],width=img_marked.shape[1],encoding = "rgb8",is_bigendian=0,step=int(img_marked.shape[1])*3)
+        # 1番マーカー(ゴール)中心と0番マーカー進行方向直線との距離
+        ## 左右を判定するため、あえて符号付き距離を使っている。線に対して点が右ならマイナス、左ならプラス
+        dist_betw_line_and_destination = signed_dist_line_pt(front,rear,marker_1_g)
+        # 1番マーカー中心と0番マーカー中心の距離
+        dist_to_dest = math.sqrt((marker_0_g[0]-marker_1_g[0])**2 + (marker_0_g[1]-marker_1_g[1]))
 
-    # 1番マーカーの4点から重心を取得
-    marker_1 = corners2[np.where(ids==[1])[0][0]][0]
-    marker_1_g=np.average(marker_1,axis=0)
-
-    # 1番マーカー(ゴール)中心と0番マーカー進行方向直線との距離
-    ## 左右を判定するため、あえて符号付き距離を使っている。線に対して点が右ならマイナス、左ならプラス
-    dist_betw_line_and_destination = signed_dist_line_pt(front,rear,marker_1_g)
-    # 1番マーカー中心と0番マーカー中心の距離
-    dist_to_dest = math.sqrt((marker_0_g[0]-marker_1_g[0])**2 + (marker_0_g[1]-marker_1_g[1]))
-
-    # 進行方向とゴール方向のズレ角度
-    ## これを用いることで方向合わせをする。dist_betw_line_and_destinationを使わずに角度を使う理由は、ゴールまでの距離によって角度調整難易度が変動しないようにするため。
-    theta = math.atan2(dist_betw_line_and_destination,dist_to_dest)
-    
-    # 角度合わせ指令
-    if theta < -delta_theta:
-      # 右によりすぎ。左に曲がってから前に2歩進む。
-      pub_array = ((int(rotation_magnifier*abs(theta)),2),(2,0))
-    elif theta > delta_theta:
-      # 左によりすぎ。右に曲がってから前に2歩進む。
-      pub_array = ((int(rotation_magnifier*abs(theta)),1),(2,0))
+        # 進行方向とゴール方向のズレ角度
+        ## これを用いることで方向合わせをする。dist_betw_line_and_destinationを使わずに角度を使う理由は、ゴールまでの距離によって角度調整難易度が変動しないようにするため。
+        theta = math.atan2(dist_betw_line_and_destination,dist_to_dest)
+        
+        # 角度合わせ指令
+        if theta < -self.delta_theta:
+          # 右によりすぎ。左に曲がってから前に2歩進む。
+          pub_array = ((int(self.rotation_magnifier*abs(theta)),2),(2,0))
+        elif theta > self.delta_theta:
+          # 左によりすぎ。右に曲がってから前に2歩進む。
+          pub_array = ((int(self.rotation_magnifier*abs(theta)),1),(2,0))
+        else:
+          #許容誤差範囲内。前に2歩進む。
+          pub_array = ((2,0))
+        self.pub2.publish(numpy2i32multi(np.array(pub_array)))
+      else:
+        # 2度めのdetectで検知されなかった場合
+        pass
     else:
-      #許容誤差範囲内。前に2歩進む。
-      pub_array = ((2,0))
-    pub2.publish(numpy2i32multi(np.array(pub_array)))
-  else:
-    # marker0か1が検知されなかった場合。
-    pass
+      # 1度目のdetectでmarker0か1が検知されなかった場合。
+      pass
 
-def listener():
-  rospy.Subscriber('/camera/color/image_raw',Image,callback)
-  rospy.spin()
 
-if __name__ == '__main__':
-  listener()
-
-# メモ欄
+if __name__ == "__main__":
+  node = localizer()
+# メモ欄b
   # pts2の長さが一定なので、realsenseの距離・角度を動かしても投影したときの距離は一定
 
   # subscribeのrateが歩行のスピードに対して速すぎるが、指令を受け取る側のノードが十分遅いrateで進めた上で動作終了を待つようにすれば大丈夫だと思われる
