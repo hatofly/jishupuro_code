@@ -63,11 +63,11 @@ def walk_controller(times,direction):
         motion_parser(pattern[j],1)
         motion_parser(pattern[(j+phase_diff)%len(pattern)],2)
       elif direction == 1:
-        motion_parser(pattern[j],1)
-        motion_parser(pattern[-j-1],2)
-      elif direction == 2:
         motion_parser(pattern[j],2)
         motion_parser(pattern[-j-1],1)
+      elif direction == 2:
+        motion_parser(pattern[j],1)
+        motion_parser(pattern[-j-1],2)
       elif direction == 3:
         motion_parser(pattern[-j-1],1)
         motion_parser(pattern[-(j+phase_diff)%len(pattern)-1],2)

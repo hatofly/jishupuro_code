@@ -129,13 +129,13 @@ class localizer:
         # 角度合わせ指令
         if theta < -self.delta_theta:
           # 右によりすぎ。左に曲がってから前に1歩進む。
-          pub_array = ((1,1),(1,0))
+          pub_array = ((2,1),(2,1))
         elif theta > self.delta_theta:
           # 左によりすぎ。右に曲がってから前に1歩進む。
-          pub_array = ((1,2),(1,0))
+          pub_array = ((2,2),(2,2))
         else:
           #許容誤差範囲内。前に2歩進む。
-          pub_array = ((1,0),(1,0))
+          pub_array = ((2,0),(2,0))
         self.pub2.publish(numpy2i32multi(np.array(pub_array)))
       else:
         # 2度めのdetectで検知されなかった場合
