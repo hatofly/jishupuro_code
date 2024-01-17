@@ -46,7 +46,7 @@ class localizer:
 
     # nodeを開始
     rospy.init_node('localizer',anonymous=True)
-    rospy.Timer(rospy.Duration(1),self.timer_callback)
+    rospy.Timer(rospy.Duration(0.3),self.timer_callback)
 
     rospy.Subscriber('/camera/color/image_raw',Image,self.callback)
     rospy.spin() 
@@ -70,7 +70,7 @@ class localizer:
       return
     rospy.loginfo("compressing img")
     #画像の圧縮
-    img=cv2.resize(img,(int(img.shape[1]/5.0),int(img.shape[0]/5.0)))
+    img=cv2.resize(img,(int(img.shape[1]/2.0),int(img.shape[0]/2.0)))
     # マーカーを検知
     corners, ids, rejectedImgPoints = aruco.detectMarkers(img, self.p_dict) 
     ## cornersは 検出マーカー数×4×2という形
@@ -127,13 +127,13 @@ class localizer:
         # 角度合わせ指令
         if theta < -self.delta_theta:
           # 右によりすぎ。左に曲がってから前に2歩進む。
-          pub_array = ((int(self.rotation_magnifier*abs(theta)),2),(2,0))
+          pub_array = ((int(self.rotation_magnifier*abs(theta)),1),(2,0))
         elif theta > self.delta_theta:
           # 左によりすぎ。右に曲がってから前に2歩進む。
-          pub_array = ((int(self.rotation_magnifier*abs(theta)),1),(2,0))
+          pub_array = ((int(self.rotation_magnifier*abs(theta)),2),(2,0))
         else:
           #許容誤差範囲内。前に2歩進む。
-          pub_array = ((2,0))
+          pub_array = ((1,0),(1,0))
         self.pub2.publish(numpy2i32multi(np.array(pub_array)))
       else:
         # 2度めのdetectで検知されなかった場合
