@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find realsense2_camera)/launch/rs_rgbd.launch"/>
+  <node name="localizer" pkg="jishupuro" type="cog_marker.py"></node>
+  <node name="recognition_controller" pkg="jishupuro" type="recognition_controller.py"></node>
+
+</launch>
