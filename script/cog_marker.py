@@ -41,8 +41,8 @@ class localizer:
     # 変数(変更を加えるつもりのもの)定義
     self.temp_container = None
     # pubを定義
-    self.pub1 = rospy.Publisher("projected_map",Image,queue_size=10)
-    self.pub2 = rospy.Publisher("robot_operation",Int32MultiArray,queue_size=10)
+    self.pub1 = rospy.Publisher("projected_map",Image,queue_size=2)
+    self.pub2 = rospy.Publisher("robot_operation",Int32MultiArray,queue_size=2)
     # robot_operationは移動方向と歩数をまとめたシンプルな配列。座標に基づくoperationは本ノード内で行う。
     #depthの取得はここでできそう
     #https://qiita.com/keoitate/items/efe4212b0074e10378ec

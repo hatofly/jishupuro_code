@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find roswww)/launch/roswww.launch"/>
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+  <node name="recognition_controller" pkg="jishupuro" type="recognition_controller.py"></node>
+
+</launch>

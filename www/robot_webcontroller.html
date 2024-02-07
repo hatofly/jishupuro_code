@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    <!--
+		<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.js"></script>
+		-->
+		<script src="https://raw.githubusercontent.com/EventEmitter2/EventEmitter2/master/lib/eventemitter2.js"></script>
+		<!--
+		<script src="https://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
+		-->
+		<script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.js"></script>
+
+  <script>
+  // Connecting to ROS
+  // -----------------
+  var ros = new ROSLIB.Ros();
+
+  // Create a connection to the rosbridge WebSocket server.
+  ros.connect('ws://localhost:9090');
+
+  //Subscribing to a Topic
+  //----------------------
+
+  // We first create a Topic object with details of the topic's name
+  // and message type. Note that we can call publish or subscribe on the same topic object.
+  var talker = new ROSLIB.Topic({
+    ros : ros,
+    name : '/robot_operation',
+    messageType : 'std_msgs/Int32MultiArray'
+  });
+
+  $(document).ready(function () {
+   $("#button_f").click(function() {
+     var pubmsg = new ROSLIB.Message({layout: { dim:[ {label: "dim0", size: 2, stride: 16}, {label: "dim1", size: 2 ,stride: 16}], data_offset: 0}, data: [ 2.0, 0.0, 2.0, 0.0] });
+     talker.publish(pubmsg);
+     console.log("publishing..." + pubmsg.data);
+     $(this).button('reset');
+   });
+  });
+
+  $(document).ready(function () {
+   $("#button_l").click(function() {
+     var pubmsg = new ROSLIB.Message({layout: { dim:[ {label: "dim0", size: 2, stride: 16}, {label: "dim1", size: 2 ,stride: 16}], data_offset: 0}, data: [ 2.0, 1.0, 2.0, 1.0] });
+     talker.publish(pubmsg);
+     console.log("publishing..." + pubmsg.data);
+     $(this).button('reset');
+   });
+  });
+
+  $(document).ready(function () {
+   $("#button_r").click(function() {
+     var pubmsg = new ROSLIB.Message({layout: { dim:[ {label: "dim0", size: 2, stride: 16}, {label: "dim1", size: 2 ,stride: 16}], data_offset: 0}, data: [ 2.0, 2.0, 2.0, 2.0] });
+     talker.publish(pubmsg);
+     console.log("publishing..." + pubmsg.data);
+     $(this).button('reset');
+   });
+  });
+  </script>
+</head>
+
+<body>
+  <h1></h1>
+  <div id="modal" class="container">
+    <div class="panel panel-default">
+      <h1>
+        Control Panel
+      </h1>
+      <div class="wrapper">
+        <div></div>
+        <button type="button_f" id="button_f"  data-publishing-text="Publishing..." class="btn btn-default" autocomplete="off" >Walk Forward</button>
+        <div></div>
+        <button type="button_l" id="button_l"  data-publishing-text="Publishing..." class="btn btn-default" autocomplete="off" >Turn Left</button>
+        <div></div>
+        <button type="button_r" id="button_r"  data-publishing-text="Publishing..." class="btn btn-default" autocomplete="off" >Turn Right</button>
+      
+      <p> 
+        Reload if not working well
+      </p>
+    </div>
+
+</body>
+
+<style>
+  button {
+    height: 30px;
+  }
+
+  .wrapper {
+    display: grid;
+    grid-template-columns: 200px 200px 200px;
+  }
+
+</style>
+</html>

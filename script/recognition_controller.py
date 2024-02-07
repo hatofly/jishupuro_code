@@ -9,7 +9,6 @@ from sensor_msgs.msg import Image
 from converter import numpy2i32multi,i32multi2numpy
 from manual_controller import motion_parser,walk_controller
 
-# 一動作に30secかかる前提で動かす。
 
 class walker():
   def __init__(self):
@@ -17,7 +16,7 @@ class walker():
     self.motion_list=["straight","left","right"]
     self.flag = True
     rospy.init_node('recognition_controller',anonymous=True)
-    rospy.Timer(rospy.Duration(20),self.timer_callback)
+    rospy.Timer(rospy.Duration(2),self.timer_callback)
     rospy.Subscriber('robot_operation',Int32MultiArray,self.callback)
     rospy.spin()
 
