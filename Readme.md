@@ -3,7 +3,7 @@
 
 # 環境構築
 ##必要なパッケージ
-- dynamixel_driver
+- dynamixel_motor
 - realsense2_camera
 - roswww
   - ./jishupuro/www/robot_webcontrollerをroswww/wwwにコピーする
