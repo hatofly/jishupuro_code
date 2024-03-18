@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# dynamixel_io:/home/mech-user/enshu_ws/src/dynamixel_motor/dynamixel_driver/src/dynamixel_driver
-# source ~/enshu_ws/devel/setup.bash してから実行する
 import sys
 from optparse import OptionParser
 import time
