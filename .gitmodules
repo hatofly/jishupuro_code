@@ -1,0 +1,3 @@
+[submodule "scripts/dynamixel"]
+	path = scripts/dynamixel
+	url = https://github.com/hatofly/dynamixel_motor

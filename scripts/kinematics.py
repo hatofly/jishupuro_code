@@ -13,7 +13,7 @@ def fw_kinematics(r1,r2,thetas):
     pos = np.array([x,z])
     return np.array(pos)
 
-def inv_kinematics(r1,r2,pos,fw=True):
+def inv_kinematics(r1,r2,pos):
 
     thetas_guess = [0,0]
 
@@ -36,11 +36,8 @@ def inv_kinematics(r1,r2,pos,fw=True):
     thetas_opp[0] = 2*cent_angle - thetas_opp[0]
     thetas_opp[1] = -thetas_opp[1]
     roots = [thetas,thetas_opp]
+    # 脚の付け根の角度が大きい順に並べ替える
+    roots.sort(key=lambda x:x[0],reverse=True)
     return roots
 
 
-if __name__ == "__main__":
-    roots = inv_kinematics(1,1,[1,-1],fw=1)
-    print(roots)
-    print(fw_kinematics(1,1,roots[0]))
-    print(fw_kinematics(1,1,roots[1]))
