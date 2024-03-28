@@ -1,0 +1,9 @@
+walk_pattern:
+  forward: 
+    points: [[lx,lz,rx,rz,t],[],[]]
+    std_vel: 1
+  left_turn: 
+    points: [[],[],[]]
+    std_omega: 1
+robot_static: true
+lr: 0
