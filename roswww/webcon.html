@@ -1,0 +1,185 @@
+<body>
+    <div class="wrapper">
+        <div class="in_grid"></div>
+        <div class="in_grid">
+            <input type="range" id="id-1" min="0" max="1" value="0" step="0.1" name="1"/>
+        </div> 
+        <div class="in_grid"></div>
+        <div class="in_grid" style="background-color: darkcyan">
+            ↓arm↓
+        </div>
+        <div class="in_grid">
+            <input type="range" id="id-2" min="0" max="1" value="0" step="0.1" name="2"/>
+        </div class="in_grid">
+        <div class="in_grid">
+            <button id="stop_button">STOP</button>
+        </div>
+        <div class="in_grid">
+            <input type="range" id="id-3" min="0" max="1" value="0" step="0.1" name="3"/>
+        </div>
+        <div class="in_grid" style="background-color:darkcyan">
+            <input type="range" id="id-5" min="0" max="1" value="0" step="0.1" name="5"/>
+        </div>
+        <div class="in_grid"></div>
+        <div class="in_grid">
+            <input type="range" id="id-4" min="0" max="1" value="0" step="0.1" name="4"/>
+        </div>
+    </div>
+</body>
+
+<!-- roslibとかを入れる-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.js"></script>
+
+<script>
+    let ids = ["id-1","id-2","id-3","id-4"]
+    let pub_enable = false
+    let console_msg = ""
+
+    // Connecting to ROS
+    // -----------------
+    var ros = new ROSLIB.Ros();
+
+    // Create a connection to the rosbridge WebSocket server.
+    //ros.connect('ws://localhost:9090');
+    ros.connect('ws://' + location.hostname + ':9090');
+    // We first create a Topic object with details of the topic's name
+    // and message type. Note that we can call publish or subscribe on the same topic object.
+    //cmd_velのpublisher
+    var pub_vel = new ROSLIB.Topic({
+        ros : ros,
+        name : '/cmd_vel',
+        messageType : 'geometry_msgs/Twist'
+    });
+    //arm_angleのpublisher
+    var pub_arm = new ROSLIB.Topic({
+        ros : ros,
+        name : "/arm_angle",
+        messageType : 'std_msgs/Float32'
+    });
+    
+    //直進と回転におけるrangeの値とpublishする値の比率
+    rates = {linear:0.1,angular:0.1}
+
+    //idからtwistを作る
+    function twist_publisher(id){
+        value=document.getElementById(id).value
+        linearX = 0.0;
+        angularZ = 0.0;
+        switch (id){
+            case "id-1":
+                linearX = value*rates["linear"]
+                break;
+            case "id-2":
+                angularZ = value*rates["angular"]
+                break;
+            case "id-3":
+                angularZ = -value*rates["angular"]
+                break;
+            case "id-4":
+                linearX = -value*rates["linear"]
+                break;
+            default:
+                break;
+        }
+        var twist = new ROSLIB.Message({
+              linear:{x:linearX, y:0.0, z:0.0}, 
+              angular:{x:0.0, y:0.0, z:angularZ}
+            });
+        pub_vel.publish(twist);
+    }
+
+    //一定周期(500ms)ごとにarm_angleをpublishする
+    let arm_angle_pub = window.setInterval(function(){
+        let arm_angle = document.getElementById("id-5").value;
+        let f32 = new ROSLIB.Message({
+            data:arm_angle*1.0
+        });
+        pub_arm.publish(f32);
+    },500)
+
+    //一定周期(500ms)ごとにcmd_velをpublishする
+    let cmd_vel_pub = window.setInterval(function(){
+        if(pub_enable){
+            ids.forEach((elem)=>{
+                if(document.getElementById(elem).value!=0){
+                    console_msg = `id:${elem},value=${document.getElementById(elem).value}`;
+                    twist_publisher(elem);
+                }
+            })
+            console.log(`console_msg:${console_msg}`);
+        }else{
+            //console.log("publish nothing")
+        }
+    },500)
+    // 引数idに対して、それ以外のvelバーを0にする関数を返す
+    function range_reset_gen(id){
+        function range_reset(){
+            ids.forEach((elem) => {
+                if(elem!=id){
+                    document.getElementById(elem).value = 0;
+                }
+            })
+        }
+        return range_reset
+    }
+    // 各idについて、changeが加わったらそれ以外のvelバーを0にする＆publishを有効化するようなEventlistnerを付与する
+    ids.forEach((id) => {
+        let bar_id = document.getElementById(id);
+        bar_id.addEventListener('change',function(){
+            range_reset_gen(id)();
+            pub_enable = true
+        } )
+    })
+
+    //stopボタンに対して、velバーを全て0にする&pub_enableをOFFにするようなaddEventlistnerを付与する
+    document.getElementById("stop_button").addEventListener("click",(function(){
+        range_reset_gen(0)()
+        pub_enable = false;
+    }))
+</script>
+<style>
+    #id-1{
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+    }
+    #id-2{
+        transform-origin: 50% 50%;
+        transform: rotate(-180deg);
+    }
+    #id-3{
+        transform-origin: 50% 50%;
+        transform: rotate(0deg);
+    }
+    #id-4{
+        transform-origin: 50% 50%;
+        transform: rotate(90deg);
+    }
+    
+    #id-5{
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+    }
+    #stop_button{
+        text-align: center;
+        width: 100px;
+        height: 100px;
+        background-color: gray;
+    }
+    .in_grid {
+        width: 180px;
+        height: 180px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .wrapper {
+    display: grid;
+    grid-template-columns: 180px 180px 180px 180px ;
+    }
+    body{
+        background-color:darkslategrey;
+    }
+</style>
