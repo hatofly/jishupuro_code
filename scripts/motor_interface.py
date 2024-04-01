@@ -36,7 +36,8 @@ class Motor_interface():
             next_servo_rad = a*thetas_and_t[i]+b
             curr_servo_rad = self.dxl_io.get_position(id)/self.angle_rate
             vel = (next_servo_rad-curr_servo_rad)/t #[rad/s]
-            self.dxl_io.set_position_and_speed(id,self.angle_rate*next_servo_rad,self.vel_rate*vel)
+            #0~1023の範囲を超えると応答しないので、その範囲内に抑える
+            self.dxl_io.set_position_and_speed(id,min(max(self.angle_rate*next_servo_rad,0),1023),min(max(self.vel_rate*vel,0),1023))
     
     def callback_arm(self,msg=Float32()):
         # プログラム上では5番目のモーターがアーム
