@@ -16,11 +16,10 @@ class Trajectory_follower():
         leg_sizes = rospy.get_param("/leg_sizes")
         self.r1 = leg_sizes[0]
         self.r2 = leg_sizes[1]
-        
-        rospy.sleep(6)
-        self.pub_static(Bool(data=True))
+    
         rospy.init_node("trajectory_follower")
-
+        rospy.sleep(6)
+        self.pub_static.publish(Bool(data=True))
         rospy.spin()
 
     def callback_trajectory(self,msg=Float32MultiArray()):
@@ -42,6 +41,5 @@ class Trajectory_follower():
         robot_static = Bool(data=True)
         self.pub_static(robot_static)
 
-
-
-            
+if __name__ == "__main__":
+    trajectory_generator=Trajectory_follower()

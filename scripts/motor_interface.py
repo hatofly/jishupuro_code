@@ -47,6 +47,7 @@ class Motor_interface():
         next_servo_rad = a*msg.data+b
         self.dxl_io.set_position(id,self.angle_rate*next_servo_rad)
 
-
+if __name__ == "__main__":
+    trajectory_generator=Motor_interface()
 
 
