@@ -1,0 +1,10 @@
+<launch>
+    <include file="$(find roswww)/launch/roswww.launch"/>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+    <node name="cmd_vel_relay" pkg="jishupro_remake" type="cmd_vel_relay"></node>
+    <node name="trajectory_generator" pkg="jishupro_remake" type="trajectory_generator.py"></node>
+    <node name="trajectory_follower" pkg="jishupro_remake" type="trajectory_follower.py"></node>
+    <node name="motor_interface" pkg="jishupro_remake" type="motor_interface.py"></node>
+    <rosparam command="load" file="$(find jishupro_remake)/config/param_config.yaml"/>
+  
+  </launch>

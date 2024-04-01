@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 # taken from https://qiita.com/kotarouetake/items/3c467e3c8aee0c51a50f
 
 from functools import partial
