@@ -59,6 +59,17 @@
         name : "/arm_angle",
         messageType : 'std_msgs/Float32'
     });
+
+    var pub_static = new ROSLIB.Topic({
+        ros : ros,
+        name :"/robot_static",
+        messageType : "std_msgs/Bool"
+
+    });
+    static = new ROSLIB.Message({
+        data:true
+    })
+    pub_static.publish(static)
     
     //直進と回転におけるrangeの値とpublishする値の比率
     rates = {linear:0.1,angular:0.1}
@@ -111,6 +122,11 @@
             })
             console.log(`console_msg:${console_msg}`);
         }else{
+            var twist = new ROSLIB.Message({
+              linear:{x:0.0, y:0.0, z:0.0}, 
+              angular:{x:0.0, y:0.0, z:0.0}
+            });
+             pub_vel.publish(twist);
             //console.log("publish nothing")
         }
     },500)

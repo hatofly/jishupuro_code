@@ -14,14 +14,15 @@ class Trajectory_generator():
         self.sub_vel = message_filters.Subscriber('/cmd_vel_robot', Twist,queue_size=3)
         self.sub_static = message_filters.Subscriber("/robot_static",Bool,queue_size=2)
         # /robot_static = True のときだけtrajectoryを出す。Trueのときしかpublishされないので大域変数保存は使わない（常にTrueになってしまう）
-        mf = message_filters.ApproximateTimeSynchronizer([self.sub_vel, self.sub_static],queue_size=1)
+        mf = message_filters.ApproximateTimeSynchronizer([self.sub_vel, self.sub_static],queue_size=1,slop=1.5,allow_headerless=True)
         mf.registerCallback(self.callback)
 
         self.pub_trajectory = rospy.Publisher("/foot_trajectory",Float32MultiArray,queue_size=1)
+        rospy.loginfo("foot_traj published")
         self.left_front = True
         self.walk_pattern = rospy.get_param("/walk_pattern")
 
-        rospy.init_node("/trajectory_generator")
+        rospy.init_node("trajectory_generator")
         rospy.spin()
 
     def pattern_modifier(self,points,time_rate,lr_swch,time_swch):
@@ -41,7 +42,8 @@ class Trajectory_generator():
 
  
 
-    def callback(self,msg=Twist()):
+    def callback(self,msg=Twist(),msg_static=Bool()):
+        rospy.loginfo("callback called")
         # 前進か回転のいずれかに丸める
         # 回転角度xロボット半径による比較
         if abs(msg.linear.x) > abs(msg.linear.z)*0.036:
@@ -75,6 +77,7 @@ class Trajectory_generator():
             #この式の説明はmiroにある
         #これでpointsを設定できたのでpublishする
         self.pub_trajectory.publish(numpy2f32multi(np.array(points)))
+        rospy.INFO("published traj")
         # left_frontを更新する
         [lx,lz,rx,rz,t]=points[-1]
         self.left_front = (rx>lx)

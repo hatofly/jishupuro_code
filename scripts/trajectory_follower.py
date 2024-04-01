@@ -16,7 +16,9 @@ class Trajectory_follower():
         leg_sizes = rospy.get_param("/leg_sizes")
         self.r1 = leg_sizes[0]
         self.r2 = leg_sizes[1]
-    
+        
+        rospy.sleep(6)
+        self.pub_static(Bool(data=True))
         rospy.init_node("trajectory_follower")
 
         rospy.spin()
