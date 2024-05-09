@@ -1,8 +1,10 @@
 自主プロのプログラム
 =
 
+今のところはremakeが最新
+
 # 環境構築
-##必要なパッケージ
+## 必要なパッケージ
 - dynamixel_motor
 - realsense2_camera
 - roswww
