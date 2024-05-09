@@ -66,10 +66,6 @@
         messageType : "std_msgs/Bool"
 
     });
-    static = new ROSLIB.Message({
-        data:true
-    })
-    pub_static.publish(static)
     
     //直進と回転におけるrangeの値とpublishする値の比率
     rates = {linear:0.1,angular:0.1}
@@ -155,6 +151,12 @@
         range_reset_gen(0)()
         pub_enable = false;
     }))
+
+    //staticはvelが0のときに出す
+    //static = new ROSLIB.Message({
+    //    data:true
+    //})
+    pub_static.publish(static)
 </script>
 <style>
     #id-1{

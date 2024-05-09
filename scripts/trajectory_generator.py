@@ -43,44 +43,45 @@ class Trajectory_generator():
  
 
     def callback(self,msg=Twist(),msg_static=Bool()):
-        rospy.loginfo("callback called")
-        # 前進か回転のいずれかに丸める
-        # 回転角度xロボット半径による比較
-        if abs(msg.linear.x) > abs(msg.linear.z)*0.036:
-            vel = msg.linear.x
-            std_vel = self.walk_pattern["forward"]["std_vel"]
-            if abs(vel)<std_vel*0.1:
-                # 遅すぎたら動かない
-                return
-            if abs(vel)>std_vel*1.5:
-                # 速すぎたら抑える
-                vel *= std_vel*1.5/abs(vel)
+        if msg_static.data==True:
+            rospy.loginfo("callback called")
+            # 前進か回転のいずれかに丸める
+            # 回転角度xロボット半径による比較
+            if abs(msg.linear.x) > abs(msg.linear.z)*0.036:
+                vel = msg.linear.x
+                std_vel = self.walk_pattern["forward"]["std_vel"]
+                if abs(vel)<std_vel*0.1:
+                    # 遅すぎたら動かない
+                    return
+                if abs(vel)>std_vel*1.5:
+                    # 速すぎたら抑える
+                    vel *= std_vel*1.5/abs(vel)
 
-            if vel>0:
-                #前進
-                points = self.pattern_modifier(self.walk_pattern["forward"]["points"],std_vel/abs(vel),self.left_front,False)
+                if vel>0:
+                    #前進
+                    points = self.pattern_modifier(self.walk_pattern["forward"]["points"],std_vel/abs(vel),self.left_front,False)
+                else:
+                    #後退
+                    points = self.pattern_modifier(self.walk_pattern["forward"]["points"],std_vel/abs(vel),(not self.left_front),True)
+                    #前に出している足を先に動かすのでright_fisrtを反転している
             else:
-                #後退
-                points = self.pattern_modifier(self.walk_pattern["forward"]["points"],std_vel/abs(vel),(not self.left_front),True)
-                #前に出している足を先に動かすのでright_fisrtを反転している
-        else:
-            # 左右回転
-            omega = msg.angular.z
-            std_omega = self.walk_pattern["left_turn"]["std_omega"]
-            if abs(omega)<std_omega*0.1:
-                #遅すぎたら動かない
-                return
-            if abs(omega)>std_omega*1.5:
-                omega *= std_omega*1.5/abs(omega)
-                #速すぎたら抑える
-            points = self.pattern_modifier(self.walk_pattern["left_turn"]["points"],std_omega/abs(omega),self.left_front,(bool(omega<0) != bool(not self.left_front)))
-            #この式の説明はmiroにある
-        #これでpointsを設定できたのでpublishする
-        self.pub_trajectory.publish(numpy2f32multi(np.array(points)))
-        rospy.INFO("published traj")
-        # left_frontを更新する
-        [lx,lz,rx,rz,t]=points[-1]
-        self.left_front = (rx>lx)
+                # 左右回転
+                omega = msg.angular.z
+                std_omega = self.walk_pattern["left_turn"]["std_omega"]
+                if abs(omega)<std_omega*0.1:
+                    #遅すぎたら動かない
+                    return
+                if abs(omega)>std_omega*1.5:
+                    omega *= std_omega*1.5/abs(omega)
+                    #速すぎたら抑える
+                points = self.pattern_modifier(self.walk_pattern["left_turn"]["points"],std_omega/abs(omega),self.left_front,(bool(omega<0) != bool(not self.left_front)))
+                #この式の説明はmiroにある
+            #これでpointsを設定できたのでpublishする
+            self.pub_trajectory.publish(numpy2f32multi(np.array(points)))
+            rospy.loginfo("published traj")
+            # left_frontを更新する
+            [lx,lz,rx,rz,t]=points[-1]
+            self.left_front = (rx>lx)
 
 
 

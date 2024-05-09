@@ -14,7 +14,7 @@ def _numpy2multiarray(multiarray_type, np_array):
 
 def _multiarray2numpy(pytype, dtype, multiarray):
     """Convert multiarray to numpy.ndarray"""
-    dims = map(lambda x: x.size, multiarray.layout.dim)
+    dims = list(map(lambda x: int(x.size), multiarray.layout.dim))
     return np.array(multiarray.data, dtype=pytype).reshape(dims).astype(dtype)
 
 numpy2f32multi = partial(_numpy2multiarray, Float32MultiArray)
