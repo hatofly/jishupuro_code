@@ -9,9 +9,9 @@ import math
 import copy
 import numpy as np
 
-PI = math.pi
 
-# 関節角度列を作る
+# generate joint angle trajectory
+PI = math.pi
 traj = [
     [94.67,124.18],
     [104.05,116.8],
@@ -35,24 +35,34 @@ traj = [
     [106.12,102.08],
     [102.93,102.35],
     [95.58,106.04],
-    [91.46,125.68]
+    [91.46,125.68],
 ]
 traj = np.array(traj)
 traj = np.vectorize(np.deg2rad)(traj)
-#2軸の角度変化のうち大きい方を基準角速度で割って、基準補完時間とすればいい
-
+#2軸の角度変化のうち大きい方を基準角速度で割って、基準補完時間とする
+#基準角速度はT-ω図の真ん中あたり
 std_omega = 40*(2*PI/60)*(26/70)
 
-itpl_times = [0]
+#traj2[i]に、traj[i-1]からtraj[i]へのstd_omgによる到達時間を入れたい. traj2[0]については、trajの末尾からtrajの先頭に戻るときの所要時間を入れたい
+itpl_times = []
 for i in range(traj.shape[0]):
-    t1=traj[i]
-    t2=traj[(i+1)%traj.shape[0]]
-    itpl_time = max(np.abs(t2-t1))/std_omega
-    itpl_times.append(itpl_time+itpl_times[-1])
+    t_cur=traj[i]
+    t_prev=traj[(i-1)%traj.shape[0]]
+    itpl_time = np.max(np.abs(t_prev-t_cur))/std_omega
+    if len(itpl_times)==0:
+        itpl_times.append(itpl_time)
+    else:
+        itpl_times.append(itpl_time+itpl_times[-1])
 
-#traje2は補完時間を追加したもの。
-traj2 = np.hstack((traj,np.array(itpl_times[1:]).reshape((traj.shape[0],1))))
+traj2 = np.hstack((traj,np.array(itpl_times).reshape((traj.shape[0],1))))
 
+## traj2を時間データに対してスプライン補完 床接触時の多少の高さ誤差は無視
+from scipy import interpolate
+f0 = np.vectorize(interpolate.Akima1DInterpolator(traj2[:,2],traj2[:,0]))
+f1 = np.vectorize(interpolate.Akima1DInterpolator(traj2[:,2],traj2[:,1]))
+timeline = np.linspace(traj2[0,2],traj2[-1,2],2000)
+traj_smth = np.hstack((f0(timeline),f1(timeline),timeline)).T
+# 2000個に分割された時系列関節角度データ
 
 class pos_controller():
     def __init__(self):
@@ -63,9 +73,9 @@ class pos_controller():
         self.joints = {0:[0,1],1:[2,3],2:[4,5],3:[6,7]}
         self.joint_pos = {0:0,1:0,2:0,3:0}
         #standard_vel
-        self.std_vel= 1
+        self.std_vel= 0.1
         #physical params
-        self.rad = 0.1
+        self.rad = self.std_vel/self.rad
 
         #rate
         self.rate_left = 1
@@ -85,14 +95,10 @@ class pos_controller():
 
     def loop(self):
         static = True
-        cur_idx_l = int(mtn_ptn_len*0.5)
-        #左足が最初は半位相ずれてる
-        cur_idx_r = 0
         Rate = 10
+        clk_ct = 0
+        # clk_ctはtraj_smthの基準時間（つまり三列目）を指し示す
         rospy.Rate(Rate)
         while not rospy.is_shutdown():
-            next_idx_l = cur_idx_l+1
-            next_idx_r = cur_idx_r+1
-            omg_l = abs
-            Rate.sleep()
+            clk_ct
 
