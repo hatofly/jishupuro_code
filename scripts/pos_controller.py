@@ -85,7 +85,7 @@ class pos_controller():
         self.rate_left = 1
         self.rate_right = 1
         ##↑member_params↑##
-        rospy.Subscriber("/cmd_vel_robot",Twist,self.callback)
+        rospy.Subscriber("/cmd_vel",Twist,self.callback)
         # これだけでsubscribeは開始される
     
     def callback(self,cv_rb=Twist()):
