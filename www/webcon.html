@@ -54,21 +54,9 @@
         messageType : 'geometry_msgs/Twist'
     });
     //arm_angleのpublisher
-    var pub_arm = new ROSLIB.Topic({
-        ros : ros,
-        name : "/arm_angle",
-        messageType : 'std_msgs/Float32'
-    });
-
-    var pub_static = new ROSLIB.Topic({
-        ros : ros,
-        name :"/robot_static",
-        messageType : "std_msgs/Bool"
-
-    });
     
     //直進と回転におけるrangeの値とpublishする値の比率
-    rates = {linear:0.1,angular:0.1}
+    rates = {linear:0.3,angular:0.3/0.12}
 
     //idからtwistを作る
     function twist_publisher(id){
@@ -98,16 +86,9 @@
         pub_vel.publish(twist);
     }
 
-    //一定周期(500ms)ごとにarm_angleをpublishする
-    let arm_angle_pub = window.setInterval(function(){
-        let arm_angle = document.getElementById("id-5").value;
-        let f32 = new ROSLIB.Message({
-            data:arm_angle*1.0
-        });
-        pub_arm.publish(f32);
-    },500)
 
-    //一定周期(500ms)ごとにcmd_velをpublishする
+
+    //一定周期(50ms)ごとにcmd_velをpublishする
     let cmd_vel_pub = window.setInterval(function(){
         if(pub_enable){
             ids.forEach((elem)=>{
@@ -125,7 +106,7 @@
              pub_vel.publish(twist);
             //console.log("publish nothing")
         }
-    },500)
+    },50)
     // 引数idに対して、それ以外のvelバーを0にする関数を返す
     function range_reset_gen(id){
         function range_reset(){
@@ -156,7 +137,6 @@
     //static = new ROSLIB.Message({
     //    data:true
     //})
-    pub_static.publish(static)
 </script>
 <style>
     #id-1{

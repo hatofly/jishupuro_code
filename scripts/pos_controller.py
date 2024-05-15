@@ -41,7 +41,7 @@ traj = [
 traj = np.array(traj)
 traj = np.vectorize(np.deg2rad)(traj)
 #2軸の角度変化のうち大きい方を基準角速度で割って、基準補完時間とする
-#基準角速度はT-ω図の真ん中あたり
+#基準関節角速度はT-ω図の真ん中あたり
 std_omega = 40*(2*PI/60)*(26/70)
 
 #traj2[i]に、traj[i-1]からtraj[i]へのstd_omgによる到達時間を入れたい. traj2[0]については、trajの末尾からtrajの先頭に戻るときの所要時間を入れたい
@@ -56,6 +56,7 @@ for i in range(traj.shape[0]):
         itpl_times.append(itpl_time+itpl_times[-1])
 
 traj2 = np.hstack((traj,np.array(itpl_times).reshape((traj.shape[0],1))))
+traj2 = np.vstack((np.array([traj[-1][0],traj[-1][1],0]).reshape(1,3),traj2))
 
 ## traj2を時間データに対してスプライン補完 床接触時の多少の高さ誤差は無視
 from scipy import interpolate
@@ -77,14 +78,15 @@ class pos_controller():
         #joint id and its commanded pos
         self.joint_cmd = {0:0,1:0,2:0,3:0}
         #standard_vel
-        self.std_vel= 0.1
+        self.std_vel= 0.01
         #physical params
-        self.rad = self.std_vel/self.rad
+        self.rad = 0.12 #旋回半径
 
         #rate
         self.rate_left = 1
         self.rate_right = 1
         ##↑member_params↑##
+        rospy.init_node("pos_controller")
         rospy.Subscriber("/cmd_vel",Twist,self.callback)
         # これだけでsubscribeは開始される
     
@@ -101,15 +103,15 @@ class pos_controller():
         # self.jointsの値をサーボに反映する。
         ## joint_cmdに指示する角度値をサーボの角度に変換する必要がある。線形関係が成り立っているため、coef*jonit+ofst = mt というa,bのリストを持てば良い
         ##各ジョイントに使われる各々サーボについて、その値は共通とする。
-        coefs = {0:26/70,1:26/70,2:26/70,3:26/70}
+        coefs = {0:70/30,1:70/30,2:70/30,3:70/30}
         ofsts = {0:0,1:0,2:0,3:0}
         ##サービス"dynamixel_command"を関数として読み込む
-        rospy.wait_for_service("/dynamixel_command")
-        dmx_cmd = rospy.ServiceProxy("/dynamixel_command",DynamixelCommand)
+        rospy.wait_for_service("/dynamixel_workbench/dynamixel_command")
+        dmx_cmd = rospy.ServiceProxy("/dynamixel_workbench/dynamixel_command",DynamixelCommand)
         for i in range(4):
             ### 各サーボについて指令を送る。
             jnt_ang=self.joint_cmd[i]
-            mot_ang=coefs[i]*jnt_ang+ofsts
+            mot_ang=coefs[i]*jnt_ang+ofsts[i]
             cmd = DynamixelCommandRequest()
             #指令用メッセージオブジェクト
             for svid in self.joints[i]:
@@ -117,25 +119,31 @@ class pos_controller():
                 cmd.command=""
                 cmd.id=svid
                 cmd.addr_name="Goal_Position"
-                cmd.value = mot_ang
+                cmd.value = int(mot_ang*(4096/(2*PI))) # 指令値は0~4096のint
                 #指令
                 dmx_cmd(cmd)
+                rospy.loginfo("service call")
 
-            
+#loopの途中で止まっちゃってる！！！            
 
     def loop(self):
-        static = True
         tm_rate = 10
         clk_ct_l = 0
         clk_ct_r = std_nt_tm/2
         # clk_ctはtraj_smthの基準時間（つまり三列目）を指し示す
         # 位相を保存したいが、一旦その機能はなしでいいかな。面倒くさいから...
         Rate = rospy.Rate(tm_rate)
+        rospy.loginfo("loop start")
         while not rospy.is_shutdown():
+            rospy.loginfo("on the loop")
             clk_ct_l = (clk_ct_l+(1/tm_rate)*(self.rate_left))%std_nt_tm
             clk_ct_r = (clk_ct_r+(1/tm_rate)*(self.rate_left))%std_nt_tm
             self.joint_cmd[0],self.joint_cmd[1] = f0(clk_ct_l),f1(clk_ct_l)
             self.joint_cmd[2],self.joint_cmd[3] = f0(clk_ct_r),f1(clk_ct_r)
             self.jnt_ctl()
             Rate.sleep()
+
+if __name__ == "__main__":
+    obj = pos_controller()
+    obj.loop()
             
