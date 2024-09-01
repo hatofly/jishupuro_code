@@ -1,3 +1,0 @@
-# groundを低くするほど　非接地脚がgroundから遠のく
-front_temp_line: 12 ~ 50
-front_temp_line2: 0 ~ 43
